@@ -13,12 +13,22 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm --needed git python python-pip pacman-contrib base-devel
+          pacman -Syu --noconfirm --needed git python python-pip pacman-contrib base-devel sudo
 
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.PAT }} # Use PAT to trigger subsequent workflows
+
+      - name: Setup git and build user
+        run: |
+          # Fix git dubious ownership
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          # Create build user for running updpkgsums (makepkg cannot run as root)
+          useradd -m -G wheel builduser
+          echo 'builduser ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builduser:builduser "$GITHUB_WORKSPACE"
 
       - name: Install nvchecker
         run: pip install nvchecker --break-system-packages

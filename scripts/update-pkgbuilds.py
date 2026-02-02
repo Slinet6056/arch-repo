@@ -93,9 +93,21 @@ def update_checksums(pkg_dir: Path) -> bool:
     """Run updpkgsums in package directory. Returns True on success."""
     print("Updating checksums...")
     try:
-        subprocess.run(
-            ["updpkgsums"], cwd=pkg_dir, check=True, capture_output=True, text=True
-        )
+        # Check if running as root
+        if subprocess.run(["id", "-u"], capture_output=True, text=True).stdout.strip() == "0":
+            # Running as root - use builduser
+            subprocess.run(
+                ["sudo", "-u", "builduser", "updpkgsums"],
+                cwd=pkg_dir,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        else:
+            # Not root - run directly
+            subprocess.run(
+                ["updpkgsums"], cwd=pkg_dir, check=True, capture_output=True, text=True
+            )
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error updating checksums: {e.stderr}")
@@ -104,7 +116,17 @@ def update_checksums(pkg_dir: Path) -> bool:
 
 def rollback_changes(pkgbuild_path: Path):
     """Rollback changes to PKGBUILD using git."""
-    subprocess.run(["git", "checkout", str(pkgbuild_path)], check=True)
+    try:
+        subprocess.run(["git", "checkout", str(pkgbuild_path)], check=True, capture_output=True)
+        print(f"Rolled back changes to {pkgbuild_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Failed to rollback {pkgbuild_path}: {e.stderr.decode()}")
+        # Try to restore from HEAD
+        try:
+            subprocess.run(["git", "restore", str(pkgbuild_path)], check=True, capture_output=True)
+            print(f"Restored {pkgbuild_path} using git restore")
+        except subprocess.CalledProcessError:
+            print(f"Could not restore {pkgbuild_path}, manual cleanup may be needed")
 
 
 def main():
