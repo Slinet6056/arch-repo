@@ -1,0 +1,186 @@
+name: Build and Deploy Packages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+  pull_request:
+    paths:
+      - "src/**"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package name to build (leave empty for all changed)"
+        required: false
+        type: string
+
+env:
+  REPO_NAME: slinet
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.changes.outputs.packages }}
+      has_packages: ${{ steps.changes.outputs.has_packages }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: changes
+        run: |
+          if [ -n "${{ github.event.inputs.package }}" ]; then
+            # Manual trigger with specific package
+            PACKAGES='["${{ github.event.inputs.package }}"]'
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # Get changed packages from commit
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} 2>/dev/null | \
+              grep '^src/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+            PACKAGES="${CHANGED:-[]}"
+          else
+            # For PRs, compare with base branch
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null | \
+              grep '^src/' | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+            PACKAGES="${CHANGED:-[]}"
+          fi
+
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+          if [ "$PACKAGES" = "[]" ] || [ -z "$PACKAGES" ]; then
+            echo "has_packages=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_packages=true" >> $GITHUB_OUTPUT
+          fi
+          echo "Detected packages: $PACKAGES"
+
+  build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_packages == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build package with archpkg-build
+        uses: Slinet6056/archpkg-build@v1
+        with:
+          package_name: ${{ matrix.package }}
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          pkgs_path: src
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: pkg-${{ matrix.package }}
+          path: |
+            src/${{ matrix.package }}/*.pkg.tar.zst
+            src/${{ matrix.package }}/*.pkg.tar.zst.sig
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy:
+    needs: [detect-changes, build]
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.has_packages == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: packages
+          pattern: pkg-*
+          merge-multiple: true
+
+      - name: Setup rclone for R2
+        run: |
+          curl -O https://downloads.rclone.org/rclone-current-linux-amd64.deb
+          sudo dpkg -i rclone-current-linux-amd64.deb
+
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.CLOUDFLARE_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
+          endpoint = https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          acl = private
+          EOF
+
+      - name: Download existing database
+        run: |
+          mkdir -p repo
+          # Try to fetch existing database files
+          rclone copy r2:arch-repo/${{ env.REPO_NAME }}.db.tar.gz repo/ 2>/dev/null || true
+          rclone copy r2:arch-repo/${{ env.REPO_NAME }}.files.tar.gz repo/ 2>/dev/null || true
+
+          # Create db symlinks if files exist
+          if [ -f repo/${{ env.REPO_NAME }}.db.tar.gz ]; then
+            cp repo/${{ env.REPO_NAME }}.db.tar.gz repo/${{ env.REPO_NAME }}.db
+          fi
+          if [ -f repo/${{ env.REPO_NAME }}.files.tar.gz ]; then
+            cp repo/${{ env.REPO_NAME }}.files.tar.gz repo/${{ env.REPO_NAME }}.files
+          fi
+
+      - name: Update repository database
+        run: |
+          sudo pacman -Sy --noconfirm pacman-contrib
+
+          # Move built packages to repo directory
+          find packages -name "*.pkg.tar.zst" -exec mv {} repo/ \;
+          find packages -name "*.pkg.tar.zst.sig" -exec mv {} repo/ \; 2>/dev/null || true
+
+          cd repo
+
+          # Add each package to the repository database
+          for pkg in *.pkg.tar.zst; do
+            if [ -f "$pkg" ]; then
+              if [ "${{ vars.GPG_ENABLED }}" = "true" ] && [ -f "$pkg.sig" ]; then
+                repo-add -s -v ${{ env.REPO_NAME }}.db.tar.gz "$pkg"
+              else
+                repo-add -v ${{ env.REPO_NAME }}.db.tar.gz "$pkg"
+              fi
+            fi
+          done
+
+          # Create database symlinks for pacman compatibility
+          ln -sf ${{ env.REPO_NAME }}.db.tar.gz ${{ env.REPO_NAME }}.db
+          ln -sf ${{ env.REPO_NAME }}.files.tar.gz ${{ env.REPO_NAME }}.files
+
+      - name: Upload to Cloudflare R2
+        run: |
+          cd repo
+
+          # Upload package files
+          for file in *.pkg.tar.zst *.pkg.tar.zst.sig; do
+            if [ -f "$file" ]; then
+              rclone copyto "$file" "r2:arch-repo/$file"
+              echo "Uploaded: $file"
+            fi
+          done
+
+          # Upload database files
+          rclone copyto ${{ env.REPO_NAME }}.db.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.db.tar.gz
+          rclone copyto ${{ env.REPO_NAME }}.files.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.files.tar.gz
+          rclone copyto ${{ env.REPO_NAME }}.db.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.db
+          rclone copyto ${{ env.REPO_NAME }}.files.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.files
+
+          echo "Repository updated successfully!"
+
+      - name: Cleanup old package versions
+        run: |
+          # Trigger cleanup via Worker API
+          curl -X POST https://arch.slinet.moe/api/cleanup \
+            -H "Authorization: Bearer ${{ secrets.CLEANUP_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"keep_versions": 2}' \
+            --fail-with-body || echo "Cleanup failed, but continuing..."

@@ -1,0 +1,37 @@
+# Build artifacts
+*.pkg.tar.zst
+*.pkg.tar.zst.sig
+*.src.tar.gz
+*.db
+*.db.tar.gz
+*.files
+*.files.tar.gz
+
+# Package build directories
+src/*/pkg/
+src/*/src/
+src/*/*.log
+
+# Node modules
+node_modules/
+.wrangler/
+
+# Environment files
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
