@@ -38,14 +38,32 @@ jobs:
           echo "Combined config:"
           cat /tmp/nvchecker.toml
 
+      - name: Initialize version database
+        run: |
+          # Create oldver file from current PKGBUILD versions
+          echo "Initializing version database..."
+          for dir in src/*/; do
+            pkgname=$(basename "$dir")
+            if [ -f "$dir/.nvchecker.toml" ]; then
+              pkgver=$(grep -m1 '^pkgver=' "$dir/PKGBUILD" | cut -d= -f2)
+              echo "$pkgname $pkgver" >> /tmp/oldver
+            fi
+          done
+
+          echo "Current versions:"
+          cat /tmp/oldver || true
+
       - name: Check for new versions
         id: check
         run: |
           # Run nvchecker
           nvchecker -c /tmp/nvchecker.toml --logger json > /tmp/nvchecker.log 2>&1 || true
 
+          echo "nvchecker log:"
+          cat /tmp/nvchecker.log
+
           # Save results to file
-          if [ -f /tmp/newver ]; then
+          if [ -f /tmp/newver ] && [ -s /tmp/newver ]; then
             echo "New versions found:"
             cat /tmp/newver
             echo "has_updates=true" >> $GITHUB_OUTPUT
@@ -59,7 +77,7 @@ jobs:
         run: python3 scripts/update-pkgbuilds.py
 
       - name: Read commit message
-        if: success()
+        if: steps.check.outputs.has_updates == 'true'
         id: read-commit-msg
         run: |
           {
@@ -69,7 +87,7 @@ jobs:
           } >> $GITHUB_OUTPUT
 
       - name: Commit changes
-        if: success()
+        if: steps.check.outputs.has_updates == 'true'
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: ${{ steps.read-commit-msg.outputs.message }}
