@@ -72,7 +72,7 @@ def update_pkgbuild(pkgbuild_path: Path, new_version: str) -> tuple[bool, str]:
     current_version = current_ver_match.group(1).strip("'\"")
 
     if current_version == new_version:
-        print(f"Already at version {new_version}")
+        print(f"Already at version {new_version} (skipping)")
         return False, current_version
 
     print(f"Updating: {current_version} -> {new_version}")
@@ -132,7 +132,7 @@ def rollback_changes(pkgbuild_path: Path):
 
 def main():
     """Main entry point."""
-    newver_file = Path("/tmp/newver")
+    newver_file = Path("/tmp/newver.json")
     updates = read_nvchecker_results(newver_file)
 
     if not updates:
@@ -187,8 +187,9 @@ def main():
         print(f"\nSuccessfully updated {len(updated_packages)} package(s)")
         sys.exit(0)
     else:
-        print("No packages were updated")
-        sys.exit(1)
+        print("No packages were updated (all packages already at detected versions)")
+        # Exit with success - this is not an error, just nothing to do
+        sys.exit(0)
 
 
 if __name__ == "__main__":

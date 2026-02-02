@@ -36,11 +36,11 @@ jobs:
       - name: Collect nvchecker configs
         id: collect
         run: |
-          # Add global config section
+          # Add global config section with JSON format
           cat > /tmp/nvchecker.toml << 'EOF'
           [__config__]
-          oldver = "oldver"
-          newver = "newver"
+          oldver = "oldver.json"
+          newver = "newver.json"
 
           EOF
 
@@ -58,36 +58,45 @@ jobs:
 
       - name: Initialize version database
         run: |
-          # Create oldver file from current PKGBUILD versions
+          # Create oldver.json file from current PKGBUILD versions
           echo "Initializing version database..."
+          echo "{" > /tmp/oldver.json
+          first=true
           for dir in src/*/; do
             pkgname=$(basename "$dir")
             if [ -f "$dir/.nvchecker.toml" ]; then
-              pkgver=$(grep -m1 '^pkgver=' "$dir/PKGBUILD" | cut -d= -f2)
-              echo "$pkgname $pkgver" >> /tmp/oldver
+              # Extract pkgver and strip quotes/whitespace
+              pkgver=$(grep -m1 '^pkgver=' "$dir/PKGBUILD" | cut -d= -f2 | tr -d "\"' \t")
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> /tmp/oldver.json
+              fi
+              echo "  \"$pkgname\": \"$pkgver\"" >> /tmp/oldver.json
             fi
           done
+          echo "}" >> /tmp/oldver.json
 
           echo "Current versions:"
-          cat /tmp/oldver || true
+          cat /tmp/oldver.json
 
       - name: Check for new versions
         id: check
         run: |
-          # Run nvchecker (it will read/write oldver/newver in /tmp based on config)
+          # Run nvchecker to check for updates
           cd /tmp
           nvchecker -c /tmp/nvchecker.toml --logger json > /tmp/nvchecker.log 2>&1 || true
 
           echo "nvchecker log:"
           cat /tmp/nvchecker.log
 
-          # Save results to file
-          if [ -f /tmp/newver ] && [ -s /tmp/newver ]; then
-            echo "New versions found:"
-            cat /tmp/newver
+          # Check if there are any actual updates (event: "updated")
+          if grep -q '"event": "updated"' /tmp/nvchecker.log; then
+            echo "New versions detected:"
+            cat /tmp/newver.json
             echo "has_updates=true" >> $GITHUB_OUTPUT
           else
-            echo "No new versions found"
+            echo "All packages are up-to-date"
             echo "has_updates=false" >> $GITHUB_OUTPUT
           fi
 
