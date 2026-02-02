@@ -133,28 +133,33 @@ jobs:
 
       - name: Update repository database
         run: |
-          sudo pacman -Sy --noconfirm pacman-contrib
-
           # Move built packages to repo directory
           find packages -name "*.pkg.tar.zst" -exec mv {} repo/ \;
           find packages -name "*.pkg.tar.zst.sig" -exec mv {} repo/ \; 2>/dev/null || true
 
-          cd repo
+          # Use Arch Linux container to run repo-add
+          docker run --rm \
+            -v "$(pwd)/repo:/repo" \
+            -w /repo \
+            archlinux:latest \
+            bash -c "
+              pacman -Sy --noconfirm pacman-contrib
 
-          # Add each package to the repository database
-          for pkg in *.pkg.tar.zst; do
-            if [ -f "$pkg" ]; then
-              if [ "${{ vars.GPG_ENABLED }}" = "true" ] && [ -f "$pkg.sig" ]; then
-                repo-add -s -v ${{ env.REPO_NAME }}.db.tar.gz "$pkg"
-              else
-                repo-add -v ${{ env.REPO_NAME }}.db.tar.gz "$pkg"
-              fi
-            fi
-          done
+              # Add each package to the repository database
+              for pkg in *.pkg.tar.zst; do
+                if [ -f \"\$pkg\" ]; then
+                  if [ \"${{ vars.GPG_ENABLED }}\" = \"true\" ] && [ -f \"\$pkg.sig\" ]; then
+                    repo-add -s -v ${{ env.REPO_NAME }}.db.tar.gz \"\$pkg\"
+                  else
+                    repo-add -v ${{ env.REPO_NAME }}.db.tar.gz \"\$pkg\"
+                  fi
+                fi
+              done
 
-          # Create database symlinks for pacman compatibility
-          ln -sf ${{ env.REPO_NAME }}.db.tar.gz ${{ env.REPO_NAME }}.db
-          ln -sf ${{ env.REPO_NAME }}.files.tar.gz ${{ env.REPO_NAME }}.files
+              # Create database symlinks for pacman compatibility
+              ln -sf ${{ env.REPO_NAME }}.db.tar.gz ${{ env.REPO_NAME }}.db
+              ln -sf ${{ env.REPO_NAME }}.files.tar.gz ${{ env.REPO_NAME }}.files
+            "
 
       - name: Upload to Cloudflare R2
         run: |
