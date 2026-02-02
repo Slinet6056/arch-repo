@@ -26,11 +26,19 @@ jobs:
       - name: Collect nvchecker configs
         id: collect
         run: |
+          # Add global config section
+          cat > /tmp/nvchecker.toml << 'EOF'
+          [__config__]
+          oldver = "oldver"
+          newver = "newver"
+
+          EOF
+
           # Merge all .nvchecker.toml files into temporary config
           echo "Collecting nvchecker configs..."
-          find src -name '.nvchecker.toml' -exec cat {} \; > /tmp/nvchecker.toml
+          find src -name '.nvchecker.toml' -exec cat {} \; >> /tmp/nvchecker.toml
 
-          if [ ! -s /tmp/nvchecker.toml ]; then
+          if ! grep -q '^\[' /tmp/nvchecker.toml || [ $(grep -c '^\[' /tmp/nvchecker.toml) -eq 1 ]; then
             echo "No nvchecker configs found"
             exit 0
           fi
@@ -56,7 +64,8 @@ jobs:
       - name: Check for new versions
         id: check
         run: |
-          # Run nvchecker
+          # Run nvchecker (it will read/write oldver/newver in /tmp based on config)
+          cd /tmp
           nvchecker -c /tmp/nvchecker.toml --logger json > /tmp/nvchecker.log 2>&1 || true
 
           echo "nvchecker log:"
