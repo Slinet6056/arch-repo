@@ -1,0 +1,12 @@
+pkgname=ciallo
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Ciallo～(∠・ω< )⌒★"
+arch=('any')
+depends=('bash')
+source=("ciallo.sh")
+sha256sums=('47892413951519ada5811cfd29e046621a6412ba52f0a52a0981f6de369815de')
+
+package() {
+  install -Dm755 "$srcdir/ciallo.sh" "$pkgdir/usr/bin/ciallo"
+}
