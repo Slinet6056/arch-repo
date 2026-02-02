@@ -1,14 +1,15 @@
 export const CSS_TEMPLATE = `:root {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-card: #0f3460;
-  --text-primary: #eaeaea;
-  --text-secondary: #a0a0a0;
-  --accent: #e94560;
-  --accent-hover: #ff6b6b;
-  --border: #2a2a4a;
-  --success: #4ade80;
-  --code-bg: #0d1b2a;
+  /* Catppuccin Macchiato */
+  --bg-primary: #24273a;
+  --bg-secondary: #1e2030;
+  --bg-card: #363a4f;
+  --text-primary: #cad3f5;
+  --text-secondary: #a5adcb;
+  --accent: #c6a0f6;
+  --accent-hover: #b7bdf8;
+  --border: #5b6078;
+  --success: #a6da95;
+  --code-bg: #181926;
 }
 
 * {
@@ -35,7 +36,7 @@ body {
 }
 
 header {
-  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+  background: var(--bg-secondary);
   padding: 60px 0;
   text-align: center;
   border-bottom: 1px solid var(--border);
@@ -67,6 +68,7 @@ section {
 
 h2 {
   font-size: 1.5rem;
+  margin-top: 30px;
   margin-bottom: 20px;
   color: var(--text-primary);
   border-bottom: 2px solid var(--accent);
@@ -96,18 +98,24 @@ h2 {
 }
 
 .copy-btn {
-  background: var(--accent);
-  color: white;
-  border: none;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   padding: 5px 12px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .copy-btn:hover {
-  background: var(--accent-hover);
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.copy-btn.copied {
+  background: var(--border);
+  color: var(--text-primary);
 }
 
 .code-block pre {
@@ -118,7 +126,7 @@ h2 {
 .code-block code {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.9rem;
-  color: var(--success);
+  color: var(--text-primary);
 }
 
 .hint {

@@ -1,11 +1,13 @@
 {
   "name": "arch-repo",
   "main": "index.js",
+  "workers_dev": true,
+  "preview_urls": true,
   "compatibility_date": "2024-01-01",
   "routes": [
     {
-      "pattern": "arch.slinet.moe/*",
-      "zone_name": "slinet.moe",
+      "pattern": "arch.slinet.moe",
+      "custom_domain": true,
     },
   ],
   "r2_buckets": [

@@ -116,11 +116,11 @@ function copyCode(button) {
     .then(() => {
       const originalText = button.textContent;
       button.textContent = "Copied!";
-      button.style.background = "#4ade80";
+      button.classList.add("copied");
 
       setTimeout(() => {
         button.textContent = originalText;
-        button.style.background = "";
+        button.classList.remove("copied");
       }, 2000);
     })
     .catch((err) => {

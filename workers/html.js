@@ -15,7 +15,7 @@ export const HTML_TEMPLATE = `<!DOCTYPE html>
       <div class="container">
         <h1>arch-repo</h1>
         <p class="subtitle">
-          High-performance Arch Linux package repository powered by Cloudflare
+          Slinet's Arch Linux package repository
         </p>
       </div>
     </header>
@@ -28,9 +28,19 @@ export const HTML_TEMPLATE = `<!DOCTYPE html>
             <span>/etc/pacman.conf</span>
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
           </div>
-          <pre><code>[arch-repo]
-SigLevel = Optional TrustAll
+          <pre><code>[slinet]
 Server = https://arch.slinet.moe</code></pre>
+        </div>
+        <p class="hint">
+          Import the GPG key:
+        </p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code>sudo pacman-key --recv-keys 66A6F13611E7BCA3
+sudo pacman-key --lsign-key 66A6F13611E7BCA3</code></pre>
         </div>
         <p class="hint">
           After adding the configuration, run
@@ -78,7 +88,7 @@ Server = https://arch.slinet.moe</code></pre>
           Auto-built by
           <a href="https://github.com/Slinet6056/arch-repo">GitHub Actions</a>
           &middot; Powered by
-          <a href="https://www.cloudflare.com">Cloudflare Workers</a>
+          <a href="https://workers.cloudflare.com">Cloudflare Workers</a>
         </p>
       </div>
     </footer>
