@@ -94,23 +94,7 @@ jobs:
       - name: Update PKGBUILDs
         if: steps.check.outputs.has_updates == 'true'
         id: update
-        run: |
-          python3 scripts/update-pkgbuilds.py
-
-          # Read commit message and set as output
-          if [ -f /tmp/commit_message.txt ]; then
-            # Ensure file is readable
-            chmod 644 /tmp/commit_message.txt
-
-            # Use a unique delimiter to avoid conflicts
-            delimiter="$(openssl rand -hex 16)"
-            echo "message<<${delimiter}" >> $GITHUB_OUTPUT
-            cat /tmp/commit_message.txt >> $GITHUB_OUTPUT
-            echo "${delimiter}" >> $GITHUB_OUTPUT
-          else
-            echo "Error: commit message file not found"
-            exit 1
-          fi
+        run: python3 scripts/update-pkgbuilds.py
 
       - name: Commit changes
         if: steps.check.outputs.has_updates == 'true'

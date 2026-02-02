@@ -11,6 +11,7 @@ This script:
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -169,8 +170,19 @@ def main():
         commit_msg += "\n".join(updated_packages)
         commit_msg += "\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
+        # Write to file for debugging
         commit_file = Path("/tmp/commit_message.txt")
         commit_file.write_text(commit_msg)
+
+        # Set GitHub Actions output if running in CI
+        github_output = os.getenv("GITHUB_OUTPUT")
+        if github_output:
+            import secrets
+            delimiter = secrets.token_hex(16)
+            with open(github_output, "a") as f:
+                f.write(f"message<<{delimiter}\n")
+                f.write(commit_msg)
+                f.write(f"\n{delimiter}\n")
 
         print(f"\nSuccessfully updated {len(updated_packages)} package(s)")
         sys.exit(0)
