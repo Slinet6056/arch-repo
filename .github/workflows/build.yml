@@ -138,29 +138,70 @@ jobs:
           find packages -name "*.pkg.tar.zst" -exec mv {} repo/ \;
           find packages -name "*.pkg.tar.zst.sig" -exec mv {} repo/ \; 2>/dev/null || true
 
+          # Create GPG passphrase file if GPG is enabled
+          if [ "${{ vars.GPG_ENABLED }}" = "true" ]; then
+            echo "${{ secrets.GPG_PASSPHRASE }}" > repo/.gpg-passphrase
+            chmod 600 repo/.gpg-passphrase
+          fi
+
           # Use Arch Linux container to run repo-add
           docker run --rm \
             -v "$(pwd)/repo:/repo" \
             -w /repo \
+            -e GPG_PRIVATE_KEY="${{ secrets.GPG_PRIVATE_KEY }}" \
+            -e GPG_ENABLED="${{ vars.GPG_ENABLED }}" \
             archlinux:latest \
             bash -c "
-              pacman -Sy --noconfirm pacman-contrib
+              pacman -Sy --noconfirm pacman-contrib gnupg
+
+              # Setup GPG if enabled
+              if [ \"\$GPG_ENABLED\" = \"true\" ] && [ -n \"\$GPG_PRIVATE_KEY\" ]; then
+                echo \"Setting up GPG for database signing...\"
+                mkdir -p ~/.gnupg
+                chmod 700 ~/.gnupg
+                echo \"\$GPG_PRIVATE_KEY\" | gpg --batch --import 2>&1
+
+                # Configure GPG for batch mode with passphrase file
+                cat > ~/.gnupg/gpg.conf <<EOF
+batch
+yes
+pinentry-mode loopback
+passphrase-file /repo/.gpg-passphrase
+EOF
+
+                cat > ~/.gnupg/gpg-agent.conf <<EOF
+allow-loopback-pinentry
+max-cache-ttl 86400
+default-cache-ttl 86400
+EOF
+
+                # Get the key ID
+                KEY_ID=\$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d: -f5)
+                echo \"Using GPG key: \$KEY_ID\"
+                export GPGKEY=\"\$KEY_ID\"
+              fi
 
               # Add each package to the repository database
               for pkg in *.pkg.tar.zst; do
                 if [ -f \"\$pkg\" ]; then
-                  if [ \"${{ vars.GPG_ENABLED }}\" = \"true\" ] && [ -f \"\$pkg.sig\" ]; then
-                    repo-add -s -v ${{ env.REPO_NAME }}.db.tar.gz \"\$pkg\"
+                  if [ \"\$GPG_ENABLED\" = \"true\" ] && [ -f \"\$pkg.sig\" ]; then
+                    repo-add -s --verify -v ${{ env.REPO_NAME }}.db.tar.gz \"\$pkg\"
                   else
                     repo-add -v ${{ env.REPO_NAME }}.db.tar.gz \"\$pkg\"
                   fi
                 fi
               done
 
+              # Clean up passphrase file
+              rm -f .gpg-passphrase
+
               # Create database symlinks for pacman compatibility
               ln -sf ${{ env.REPO_NAME }}.db.tar.gz ${{ env.REPO_NAME }}.db
               ln -sf ${{ env.REPO_NAME }}.files.tar.gz ${{ env.REPO_NAME }}.files
             "
+
+          # Clean up passphrase file from host
+          rm -f repo/.gpg-passphrase
 
       - name: Upload to Cloudflare R2
         run: |
