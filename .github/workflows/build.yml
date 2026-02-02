@@ -114,6 +114,7 @@ jobs:
           secret_access_key = ${{ secrets.CLOUDFLARE_SECRET_ACCESS_KEY }}
           endpoint = https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
           acl = private
+          no_check_bucket = true
           EOF
 
       - name: Download existing database
