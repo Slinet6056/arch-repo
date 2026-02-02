@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an automated Arch Linux package repository system with three core components:
+This is an automated Arch Linux package repository system with four core components:
 
 1. **Package sources** (`src/`): Stores PKGBUILD files, one subdirectory per package
-2. **GitHub Actions CI/CD** (`.github/workflows/build.yml`): Detects changes, builds packages, uploads to R2
-3. **Cloudflare Workers** (`workers/`): Serves package downloads, API endpoints, and web frontend
+2. **GitHub Actions CI/CD**:
+   - `.github/workflows/build.yml`: Detects changes, builds packages, uploads to R2
+   - `.github/workflows/version-check.yml`: Automatically checks for package updates every hour using nvchecker
+3. **Automation scripts** (`scripts/`): Python scripts for package maintenance
+4. **Cloudflare Workers** (`workers/`): Serves package downloads, API endpoints, and web frontend
 
 ## Architecture
 
@@ -19,6 +22,21 @@ This is an automated Arch Linux package repository system with three core compon
 - Built packages (`.pkg.tar.zst` and `.sig`) are uploaded to Cloudflare R2 storage
 - Repository database (`slinet.db.tar.gz` and `slinet.files.tar.gz`) is maintained using `repo-add`
 - After deployment, old versions are automatically cleaned up (keeps latest 2 versions by default)
+
+### Automatic Version Checking
+
+- GitHub Actions workflow (`version-check.yml`) runs every hour to check for package updates
+- Each package can have a `.nvchecker.toml` file specifying how to check for new versions
+- When new versions are detected, the workflow:
+  1. Collects all `.nvchecker.toml` files from `src/` subdirectories
+  2. Runs `nvchecker` to check for updates
+  3. Calls `scripts/update-pkgbuilds.py` to update PKGBUILD files
+  4. Auto-commits changes using a PAT token (triggers build workflow)
+- The Python script (`update-pkgbuilds.py`) handles:
+  - Updating `pkgver` to the new version
+  - Resetting `pkgrel` to 1
+  - Running `updpkgsums` to recalculate checksums
+  - Generating commit messages for the updates
 
 ### Cloudflare Workers Architecture
 
@@ -81,6 +99,7 @@ Required in GitHub and Cloudflare:
 - `CLOUDFLARE_ACCESS_KEY_ID` / `CLOUDFLARE_SECRET_ACCESS_KEY` - R2 access credentials
 - `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
 - `CLEANUP_TOKEN` - Authentication token for cleanup API endpoint
+- `PAT` - Personal Access Token with workflow permissions (for version-check to trigger build workflow)
 - `GPG_ENABLED` (vars) - Whether to enable GPG signing
 
 ## Notes

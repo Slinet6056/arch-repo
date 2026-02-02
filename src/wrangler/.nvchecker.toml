@@ -1,0 +1,6 @@
+[wrangler]
+source = "github"
+github = "cloudflare/workers-sdk"
+prefix = "wrangler@"
+include_regex = "wrangler@.*"
+exclude_regex = "wrangler@v.*"

@@ -1,0 +1,76 @@
+name: Check Package Versions
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Check every hour
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git python python-pip pacman-contrib base-devel
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PAT }} # Use PAT to trigger subsequent workflows
+
+      - name: Install nvchecker
+        run: pip install nvchecker --break-system-packages
+
+      - name: Collect nvchecker configs
+        id: collect
+        run: |
+          # Merge all .nvchecker.toml files into temporary config
+          echo "Collecting nvchecker configs..."
+          find src -name '.nvchecker.toml' -exec cat {} \; > /tmp/nvchecker.toml
+
+          if [ ! -s /tmp/nvchecker.toml ]; then
+            echo "No nvchecker configs found"
+            exit 0
+          fi
+
+          echo "Combined config:"
+          cat /tmp/nvchecker.toml
+
+      - name: Check for new versions
+        id: check
+        run: |
+          # Run nvchecker
+          nvchecker -c /tmp/nvchecker.toml --logger json > /tmp/nvchecker.log 2>&1 || true
+
+          # Save results to file
+          if [ -f /tmp/newver ]; then
+            echo "New versions found:"
+            cat /tmp/newver
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+          else
+            echo "No new versions found"
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update PKGBUILDs
+        if: steps.check.outputs.has_updates == 'true'
+        run: python3 scripts/update-pkgbuilds.py
+
+      - name: Read commit message
+        if: success()
+        id: read-commit-msg
+        run: |
+          {
+            echo 'message<<EOF'
+            cat /tmp/commit_message.txt
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: Commit changes
+        if: success()
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: ${{ steps.read-commit-msg.outputs.message }}
+          file_pattern: "src/*/PKGBUILD"
