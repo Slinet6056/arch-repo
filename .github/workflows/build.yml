@@ -180,6 +180,18 @@ jobs:
           rclone copyto ${{ env.REPO_NAME }}.db.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.db
           rclone copyto ${{ env.REPO_NAME }}.files.tar.gz r2:arch-repo/${{ env.REPO_NAME }}.files
 
+          # Upload database signature files if they exist
+          if [ -f "${{ env.REPO_NAME }}.db.tar.gz.sig" ]; then
+            rclone copyto ${{ env.REPO_NAME }}.db.tar.gz.sig r2:arch-repo/${{ env.REPO_NAME }}.db.tar.gz.sig
+            rclone copyto ${{ env.REPO_NAME }}.db.tar.gz.sig r2:arch-repo/${{ env.REPO_NAME }}.db.sig
+            echo "Uploaded database signatures"
+          fi
+          if [ -f "${{ env.REPO_NAME }}.files.tar.gz.sig" ]; then
+            rclone copyto ${{ env.REPO_NAME }}.files.tar.gz.sig r2:arch-repo/${{ env.REPO_NAME }}.files.tar.gz.sig
+            rclone copyto ${{ env.REPO_NAME }}.files.tar.gz.sig r2:arch-repo/${{ env.REPO_NAME }}.files.sig
+            echo "Uploaded files database signatures"
+          fi
+
           echo "Repository updated successfully!"
 
       - name: Cleanup old package versions
