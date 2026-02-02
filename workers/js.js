@@ -47,15 +47,14 @@ function displayPackages(packages) {
   container.innerHTML = uniquePackages
     .map(
       (pkg) => \`
-      <div class="package-card">
+      <a href="\${pkg.url}" class="package-card">
         <h3>\${escapeHtml(pkg.name)}</h3>
         <div class="meta">
           <span>v\${escapeHtml(pkg.version)}-\${escapeHtml(pkg.release)}</span>
           <span>\${escapeHtml(pkg.arch)}</span>
           <span>\${formatSize(pkg.size)}</span>
         </div>
-        <a href="\${pkg.url}" class="download-btn">Download</a>
-      </div>
+      </a>
     \`
     )
     .join("");

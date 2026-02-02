@@ -63,7 +63,7 @@ main {
 }
 
 section {
-  margin-bottom: 50px;
+  margin-bottom: 35px;
 }
 
 h2 {
@@ -80,7 +80,7 @@ h2 {
   background: var(--code-bg);
   border-radius: 8px;
   overflow: hidden;
-  margin: 20px 0;
+  margin-bottom: 20px;
 }
 
 .code-header {
@@ -174,52 +174,45 @@ h2 {
 }
 
 .package-card {
+  display: block;
   background: var(--bg-card);
   border-radius: 10px;
-  padding: 20px;
+  padding: 16px;
   border: 1px solid var(--border);
-  transition: transform 0.2s, border-color 0.2s;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .package-card:hover {
   transform: translateY(-2px);
   border-color: var(--accent);
+  background: rgba(198, 160, 246, 0.05);
 }
 
 .package-card h3 {
   font-size: 1.2rem;
-  margin-bottom: 10px;
+  margin: 0 0 10px 0;
   color: var(--accent);
+  transition: color 0.2s;
+}
+
+.package-card:hover h3 {
+  color: var(--accent-hover);
 }
 
 .package-card .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 8px;
 }
 
 .package-card .meta span {
   background: rgba(255, 255, 255, 0.1);
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-}
-
-.package-card .download-btn {
-  display: inline-block;
-  background: var(--accent);
-  color: white;
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-
-.package-card .download-btn:hover {
-  background: var(--accent-hover);
 }
 
 .loading {
