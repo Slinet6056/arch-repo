@@ -10,6 +10,7 @@ This script:
 5. Generates a commit message for the updates
 """
 
+import json
 import re
 import subprocess
 import sys
@@ -22,8 +23,20 @@ def read_nvchecker_results(newver_file: Path) -> dict[str, str]:
         print("No updates needed")
         return {}
 
+    content = newver_file.read_text().strip()
+
+    # Try to parse as JSON (nvchecker v2 format)
+    try:
+        data = json.loads(content)
+        if isinstance(data, dict) and "data" in data:
+            # New JSON format: {"version": 2, "data": {"pkg": {"version": "1.0"}}}
+            return {pkg: info["version"] for pkg, info in data["data"].items()}
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback to plain text format (old nvchecker format)
     updates = {}
-    for line in newver_file.read_text().splitlines():
+    for line in content.splitlines():
         if line.strip():
             pkg, version = line.split(None, 1)
             updates[pkg] = version
