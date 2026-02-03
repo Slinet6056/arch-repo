@@ -87,11 +87,20 @@ function formatSize(bytes) {
 function formatDate(date) {
   const now = new Date();
   const diff = now - date;
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return \`\${days} days ago\`;
+  if (minutes < 1) return "just now";
+  if (hours < 1) {
+    return minutes === 1 ? "1 minute ago" : \`\${minutes} minutes ago\`;
+  }
+  if (hours < 24) {
+    return hours === 1 ? "1 hour ago" : \`\${hours} hours ago\`;
+  }
+  if (days < 7) {
+    return days === 1 ? "1 day ago" : \`\${days} days ago\`;
+  }
 
   return date.toLocaleDateString("en-US", {
     year: "numeric",
