@@ -92,15 +92,9 @@ function formatDate(date) {
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (minutes < 1) return "just now";
-  if (hours < 1) {
-    return minutes === 1 ? "1 minute ago" : \`\${minutes} minutes ago\`;
-  }
-  if (hours < 24) {
-    return hours === 1 ? "1 hour ago" : \`\${hours} hours ago\`;
-  }
-  if (days < 7) {
-    return days === 1 ? "1 day ago" : \`\${days} days ago\`;
-  }
+  if (hours < 1) return \`\${minutes}m ago\`;
+  if (hours < 24) return \`\${hours}h ago\`;
+  if (days < 7) return \`\${days}d ago\`;
 
   return date.toLocaleDateString("en-US", {
     year: "numeric",
