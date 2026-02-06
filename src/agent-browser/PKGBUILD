@@ -1,0 +1,46 @@
+pkgname=agent-browser
+pkgver=0.8.6
+pkgrel=1
+pkgdesc="Headless browser automation CLI for AI agents"
+arch=('x86_64')
+url="https://github.com/vercel-labs/agent-browser"
+license=('Apache-2.0')
+depends=('nodejs')
+makedepends=('npm' 'pnpm' 'rust')
+source=("https://github.com/vercel-labs/agent-browser/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('4cc99b8c3a3fcf6a2aa0426ac55001b2a9409340b57c539f7de4a583eb63a721')
+
+build() {
+  cd "${pkgname}-${pkgver}"
+
+  export npm_config_ignore_scripts=true
+  export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+  pnpm install --frozen-lockfile --ignore-scripts
+  pnpm run build
+
+  node scripts/sync-version.js
+  cargo build --release --manifest-path cli/Cargo.toml
+  node scripts/copy-native.js
+
+  pnpm pack
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+
+  export npm_config_ignore_scripts=true
+  export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+  npm install -g --prefix "${pkgdir}/usr" "${pkgname}-${pkgver}.tgz"
+  install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+
+  local _arch_suffix
+  case "${CARCH}" in
+    x86_64) _arch_suffix='x64' ;;
+    aarch64) _arch_suffix='arm64' ;;
+    *) _arch_suffix="${CARCH}" ;;
+  esac
+
+  chmod 755 "${pkgdir}/usr/lib/node_modules/${pkgname}/bin/agent-browser-linux-${_arch_suffix}"
+}

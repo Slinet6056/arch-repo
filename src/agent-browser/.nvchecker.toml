@@ -1,0 +1,6 @@
+[agent-browser]
+source = "github"
+github = "vercel-labs/agent-browser"
+use_max_tag = true
+prefix = "v"
+include_regex = "^v[0-9.]+$"
