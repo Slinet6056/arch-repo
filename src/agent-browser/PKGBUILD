@@ -1,5 +1,5 @@
 pkgname=agent-browser
-pkgver=0.8.6
+pkgver=0.9.1
 pkgrel=1
 pkgdesc="Headless browser automation CLI for AI agents"
 arch=('x86_64')
@@ -8,7 +8,7 @@ license=('Apache-2.0')
 depends=('nodejs')
 makedepends=('npm' 'pnpm' 'rust')
 source=("https://github.com/vercel-labs/agent-browser/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('4cc99b8c3a3fcf6a2aa0426ac55001b2a9409340b57c539f7de4a583eb63a721')
+sha256sums=('4f24103060a9bd61ae4b5aa7b5302bcbed95dd5a5c4dd1001ea9542d0a98912f')
 
 build() {
   cd "${pkgname}-${pkgver}"
