@@ -8,7 +8,7 @@ import { CSS_TEMPLATE } from "./css.js";
 import { JS_TEMPLATE } from "./js.js";
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -132,7 +132,7 @@ async function listPackages(bucket, corsHeaders) {
         const filename = obj.key.split("/").pop();
         // Parse package filename: pkgname-version-release-arch.pkg.tar.zst
         const match = filename.match(
-          /^(.+?)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
+          /^(.+)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
         );
 
         if (match) {
@@ -228,7 +228,7 @@ async function getPackageInfo(bucket, pkgName, corsHeaders) {
       .map((obj) => {
         const filename = obj.key.split("/").pop();
         const match = filename.match(
-          /^(.+?)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
+          /^(.+)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
         );
 
         if (match) {
@@ -319,7 +319,7 @@ async function cleanupOldVersions(request, env, corsHeaders) {
     for (const file of packageFiles) {
       const filename = file.key.split("/").pop();
       const match = filename.match(
-        /^(.+?)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
+        /^(.+)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
       );
 
       if (match) {
@@ -338,7 +338,7 @@ async function cleanupOldVersions(request, env, corsHeaders) {
 
     // Delete old versions
     const deletedFiles = [];
-    for (const [pkgName, versions] of Object.entries(packageGroups)) {
+    for (const versions of Object.values(packageGroups)) {
       // Sort by upload time, newest first
       versions.sort((a, b) => new Date(b.uploaded) - new Date(a.uploaded));
 
