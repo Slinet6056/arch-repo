@@ -168,7 +168,6 @@ def main():
     if updated_packages:
         commit_msg = "chore: update package versions\n\n"
         commit_msg += "\n".join(updated_packages)
-        commit_msg += "\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
         # Write to file for debugging
         commit_file = Path("/tmp/commit_message.txt")
