@@ -6,6 +6,7 @@ arch=('x86_64')
 url="https://github.com/vercel-labs/agent-browser"
 license=('Apache-2.0')
 depends=('nodejs')
+install=agent-browser.install
 makedepends=('npm' 'pnpm' 'rust')
 source=("https://github.com/vercel-labs/agent-browser/archive/refs/tags/v${pkgver}.tar.gz")
 sha256sums=('4f24103060a9bd61ae4b5aa7b5302bcbed95dd5a5c4dd1001ea9542d0a98912f')
