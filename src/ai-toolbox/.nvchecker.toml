@@ -1,0 +1,6 @@
+[ai-toolbox]
+source = "github"
+github = "coulsontl/ai-toolbox"
+use_max_tag = true
+prefix = "v"
+include_regex = "^v[0-9.]+$"
