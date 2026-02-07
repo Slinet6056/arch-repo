@@ -34,6 +34,10 @@ EOF
 # Get and export the key ID
 KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d: -f5)
 echo "Using GPG key: $KEY_ID"
-echo "GPGKEY=$KEY_ID" >> "$GITHUB_ENV" 2>/dev/null || export GPGKEY="$KEY_ID"
+if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "GPGKEY=$KEY_ID" >> "$GITHUB_ENV"
+else
+    export GPGKEY="$KEY_ID"
+fi
 
 echo "GPG setup complete"
