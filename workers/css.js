@@ -243,8 +243,10 @@ h2 {
 
 .stat-value {
   display: block;
-  font-size: 2rem;
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
   font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
   color: var(--accent);
 }
 
