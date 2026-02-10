@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.64.0
-pkgrel=4
+pkgrel=5
 _esbuild_ver='0.27.3'
 pkgdesc="The CLI for Cloudflare Workers"
 url='https://github.com/cloudflare/workers-sdk'
@@ -17,6 +17,7 @@ makedepends=(
   'go'
   'npm'
   'pnpm'
+  'turbo'
   'typescript'
   'yq'
 )
@@ -36,6 +37,19 @@ prepare() {
   esbuild=$(yq -r .catalogs.default.esbuild.version pnpm-lock.yaml)
   [[ "$esbuild" == "$_esbuild_ver" ]]
 
+  # @hey-api/openapi-ts 0.91.1 misses plugin bundle files in npm package.
+  # Patch local-explorer-ui scripts to avoid calling openapi-ts during build.
+  node <<'NODE'
+const fs = require('node:fs');
+const path = 'packages/local-explorer-ui/package.json';
+const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+pkg.scripts.postinstall = 'true';
+pkg.scripts.build = 'vite build && prettier --write src/routeTree.gen.ts';
+
+fs.writeFileSync(path, `${JSON.stringify(pkg, null, '\t')}\n`);
+NODE
+
 }
 
 build() {
@@ -46,8 +60,8 @@ build() {
   export npm_config_ignore_scripts=true
 
   pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
-  # Build only wrangler package to avoid unrelated workspace build failures.
-  pnpm -C packages/wrangler run build
+  # Build wrangler and required workspace dependencies.
+  turbo build --filter=wrangler...
   pnpm pack -C packages/wrangler
 
   # build a copy of the specific esbuild version wrangler depends on
