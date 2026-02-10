@@ -11,10 +11,14 @@ This script:
 """
 
 import json
+import io
 import os
 import re
 import subprocess
 import sys
+import tarfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -54,6 +58,56 @@ def find_pkgbuild(pkg_name: str) -> Path | None:
     return None
 
 
+def extract_wrangler_esbuild_version(pnpm_lock_content: str) -> str | None:
+    """Extract esbuild version from wrangler pnpm-lock.yaml content."""
+    match = re.search(
+        r"catalogs:\n\s+default:\n(?:.*\n){0,40}?\s+esbuild:\n\s+specifier:\s*[^\n]+\n\s+version:\s*([^\n]+)",
+        pnpm_lock_content,
+    )
+    if not match:
+        return None
+    return match.group(1).strip().strip("'\"")
+
+
+def fetch_wrangler_esbuild_version(wrangler_version: str) -> str | None:
+    """Fetch wrangler source tarball and read required esbuild version from lockfile."""
+    url = f"https://github.com/cloudflare/workers-sdk/archive/refs/tags/wrangler@{wrangler_version}.tar.gz"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            tarball_bytes = response.read()
+    except (urllib.error.URLError, TimeoutError) as e:
+        print(f"Warning: Failed to download wrangler source tarball: {e}")
+        return None
+
+    try:
+        with tarfile.open(fileobj=io.BytesIO(tarball_bytes), mode="r:gz") as tar:
+            lockfile_member = next(
+                (
+                    member
+                    for member in tar.getmembers()
+                    if member.name.endswith("/pnpm-lock.yaml")
+                ),
+                None,
+            )
+            if lockfile_member is None:
+                print("Warning: Cannot find pnpm-lock.yaml in wrangler source tarball")
+                return None
+
+            lockfile_obj = tar.extractfile(lockfile_member)
+            if lockfile_obj is None:
+                print(
+                    "Warning: Cannot read pnpm-lock.yaml from wrangler source tarball"
+                )
+                return None
+
+            lockfile_content = lockfile_obj.read().decode("utf-8", "replace")
+    except tarfile.TarError as e:
+        print(f"Warning: Failed to unpack wrangler source tarball: {e}")
+        return None
+
+    return extract_wrangler_esbuild_version(lockfile_content)
+
+
 def update_pkgbuild(pkgbuild_path: Path, new_version: str) -> tuple[bool, str]:
     """
     Update PKGBUILD with new version.
@@ -85,6 +139,24 @@ def update_pkgbuild(pkgbuild_path: Path, new_version: str) -> tuple[bool, str]:
     # Reset pkgrel to 1
     content = re.sub(r"^pkgrel=.+$", "pkgrel=1", content, count=1, flags=re.MULTILINE)
 
+    # Keep wrangler's esbuild source pinned to the lockfile version.
+    if pkgbuild_path.parent.name == "wrangler":
+        esbuild_version = fetch_wrangler_esbuild_version(new_version)
+        if not esbuild_version:
+            print("Warning: Cannot detect wrangler esbuild version, skip this package")
+            return False, current_version
+
+        content, replacements = re.subn(
+            r"^_esbuild_ver=.+$",
+            f"_esbuild_ver='{esbuild_version}'",
+            content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if replacements == 0:
+            print(f"Warning: Cannot find _esbuild_ver in {pkgbuild_path}")
+            return False, current_version
+
     # Write back
     pkgbuild_path.write_text(content)
     return True, current_version
@@ -95,7 +167,10 @@ def update_checksums(pkg_dir: Path) -> bool:
     print("Updating checksums...")
     try:
         # Check if running as root
-        if subprocess.run(["id", "-u"], capture_output=True, text=True).stdout.strip() == "0":
+        if (
+            subprocess.run(["id", "-u"], capture_output=True, text=True).stdout.strip()
+            == "0"
+        ):
             # Running as root - use builduser
             subprocess.run(
                 ["sudo", "-u", "builduser", "updpkgsums"],
@@ -118,13 +193,17 @@ def update_checksums(pkg_dir: Path) -> bool:
 def rollback_changes(pkgbuild_path: Path):
     """Rollback changes to PKGBUILD using git."""
     try:
-        subprocess.run(["git", "checkout", str(pkgbuild_path)], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "checkout", str(pkgbuild_path)], check=True, capture_output=True
+        )
         print(f"Rolled back changes to {pkgbuild_path}")
     except subprocess.CalledProcessError as e:
         print(f"Warning: Failed to rollback {pkgbuild_path}: {e.stderr.decode()}")
         # Try to restore from HEAD
         try:
-            subprocess.run(["git", "restore", str(pkgbuild_path)], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "restore", str(pkgbuild_path)], check=True, capture_output=True
+            )
             print(f"Restored {pkgbuild_path} using git restore")
         except subprocess.CalledProcessError:
             print(f"Could not restore {pkgbuild_path}, manual cleanup may be needed")
@@ -177,6 +256,7 @@ def main():
         github_output = os.getenv("GITHUB_OUTPUT")
         if github_output:
             import secrets
+
             delimiter = secrets.token_hex(16)
             with open(github_output, "a") as f:
                 f.write(f"message<<{delimiter}\n")
