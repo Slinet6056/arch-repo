@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.64.0
-pkgrel=2
+pkgrel=3
 _esbuild_ver='0.27.3'
 pkgdesc="The CLI for Cloudflare Workers"
 url='https://github.com/cloudflare/workers-sdk'
@@ -36,6 +36,19 @@ prepare() {
   # verify we're still using the correct esbuild version
   esbuild=$(yq -r .catalogs.default.esbuild.version pnpm-lock.yaml)
   [[ "$esbuild" == "$_esbuild_ver" ]]
+
+  # @hey-api/openapi-ts 0.91.1 misses bundled plugin files on npm,
+  # which breaks local-explorer-ui's openapi generation in packaging builds.
+  node <<'NODE'
+const fs = require('node:fs');
+const pkgPath = 'packages/local-explorer-ui/package.json';
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+pkg.scripts.postinstall = 'true';
+pkg.scripts.build = pkg.scripts.build.replace('pnpm openapi-ts && ', '');
+
+fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, '\t')}\n`);
+NODE
 }
 
 build() {
@@ -46,10 +59,8 @@ build() {
   export npm_config_ignore_scripts=true
 
   pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
-  # build only wrangler and required workspace dependencies.
-  # local-explorer-ui is a miniflare dev-only dependency and currently fails
-  # in packaging environments due to openapi-ts plugin bundle resolution.
-  turbo build --filter=wrangler... --filter=!@cloudflare/local-explorer-ui
+  # build wrangler and workspace dependencies required for packaging.
+  turbo build --filter=wrangler...
   pnpm pack -C packages/wrangler
 
   # build a copy of the specific esbuild version wrangler depends on
