@@ -40,7 +40,12 @@ prepare() {
 
 build() {
   cd "workers-sdk-wrangler-${pkgver}"
-  pnpm install -C packages/wrangler --frozen-lockfile
+
+  # Avoid workspace postinstall hooks (e.g. local-explorer-ui openapi-ts)
+  # that are not required to build/publish wrangler itself.
+  export npm_config_ignore_scripts=true
+
+  pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
   # build only wrangler and its dependencies to avoid unrelated playground builds
   turbo build --filter=wrangler...
   pnpm pack -C packages/wrangler
