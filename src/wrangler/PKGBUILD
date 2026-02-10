@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.64.0
-pkgrel=1
+pkgrel=2
 _esbuild_ver='0.27.3'
 pkgdesc="The CLI for Cloudflare Workers"
 url='https://github.com/cloudflare/workers-sdk'
@@ -46,8 +46,10 @@ build() {
   export npm_config_ignore_scripts=true
 
   pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
-  # build only wrangler and its dependencies to avoid unrelated playground builds
-  turbo build --filter=wrangler...
+  # build only wrangler and required workspace dependencies.
+  # local-explorer-ui is a miniflare dev-only dependency and currently fails
+  # in packaging environments due to openapi-ts plugin bundle resolution.
+  turbo build --filter=wrangler... --filter=!@cloudflare/local-explorer-ui
   pnpm pack -C packages/wrangler
 
   # build a copy of the specific esbuild version wrangler depends on
