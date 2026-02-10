@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.64.0
-pkgrel=5
+pkgrel=6
 _esbuild_ver='0.27.3'
 pkgdesc="The CLI for Cloudflare Workers"
 url='https://github.com/cloudflare/workers-sdk'
@@ -38,14 +38,14 @@ prepare() {
   [[ "$esbuild" == "$_esbuild_ver" ]]
 
   # @hey-api/openapi-ts 0.91.1 misses plugin bundle files in npm package.
-  # Patch local-explorer-ui scripts to avoid calling openapi-ts during build.
+  # Patch local-explorer-ui scripts with a minimal dist stub for packaging.
   node <<'NODE'
 const fs = require('node:fs');
 const path = 'packages/local-explorer-ui/package.json';
 const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
 
 pkg.scripts.postinstall = 'true';
-pkg.scripts.build = 'vite build && prettier --write src/routeTree.gen.ts';
+pkg.scripts.build = 'node -e "const fs=require(\'node:fs\'); fs.mkdirSync(\'dist\',{recursive:true}); fs.writeFileSync(\'dist/index.html\',\'<!doctype html><html><body></body></html>\\n\');"';
 
 fs.writeFileSync(path, `${JSON.stringify(pkg, null, '\t')}\n`);
 NODE
