@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.64.0
-pkgrel=3
+pkgrel=4
 _esbuild_ver='0.27.3'
 pkgdesc="The CLI for Cloudflare Workers"
 url='https://github.com/cloudflare/workers-sdk'
@@ -17,7 +17,6 @@ makedepends=(
   'go'
   'npm'
   'pnpm'
-  'turbo'
   'typescript'
   'yq'
 )
@@ -37,18 +36,6 @@ prepare() {
   esbuild=$(yq -r .catalogs.default.esbuild.version pnpm-lock.yaml)
   [[ "$esbuild" == "$_esbuild_ver" ]]
 
-  # @hey-api/openapi-ts 0.91.1 misses bundled plugin files on npm,
-  # which breaks local-explorer-ui's openapi generation in packaging builds.
-  node <<'NODE'
-const fs = require('node:fs');
-const pkgPath = 'packages/local-explorer-ui/package.json';
-const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-
-pkg.scripts.postinstall = 'true';
-pkg.scripts.build = pkg.scripts.build.replace('pnpm openapi-ts && ', '');
-
-fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, '\t')}\n`);
-NODE
 }
 
 build() {
@@ -59,8 +46,8 @@ build() {
   export npm_config_ignore_scripts=true
 
   pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
-  # build wrangler and workspace dependencies required for packaging.
-  turbo build --filter=wrangler...
+  # Build only wrangler package to avoid unrelated workspace build failures.
+  pnpm -C packages/wrangler run build
   pnpm pack -C packages/wrangler
 
   # build a copy of the specific esbuild version wrangler depends on
