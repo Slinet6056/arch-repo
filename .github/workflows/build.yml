@@ -202,9 +202,4 @@ jobs:
 
       - name: Cleanup old package versions
         run: |
-          # Trigger cleanup via Worker API
-          curl -X POST https://arch.slinet.moe/api/cleanup \
-            -H "Authorization: Bearer ${{ secrets.CLEANUP_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"keep_versions": 2}' \
-            --fail-with-body || echo "Cleanup failed, but continuing..."
+          bash scripts/cleanup-old-packages.sh 2 r2:arch-repo

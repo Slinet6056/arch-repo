@@ -47,7 +47,6 @@ The Worker (`workers/index.js`) handles:
   - `/api/packages` - List all available packages
   - `/api/search?q=<query>` - Search packages
   - `/api/package/<name>` - Get package details
-  - `/api/cleanup` (POST) - Cleanup old versions (authenticated)
 - **Web frontend**: Static HTML/CSS/JS with templates inlined in `html.js`, `css.js`, `js.js`
 
 R2 storage bucket is connected via the `R2_BUCKET` binding in `wrangler.jsonc`.
@@ -78,10 +77,7 @@ gh workflow run build.yml -f package=<package-name>
 ### Manual Cleanup
 
 ```bash
-curl -X POST https://arch.slinet.moe/api/cleanup \
-  -H "Authorization: Bearer <CLEANUP_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"keep_versions": 2}'
+bash scripts/cleanup-old-packages.sh 2 r2:arch-repo
 ```
 
 ## Important Configuration
@@ -98,7 +94,6 @@ Required in GitHub and Cloudflare:
 - `GPG_PRIVATE_KEY` / `GPG_PASSPHRASE` - For package signing
 - `CLOUDFLARE_ACCESS_KEY_ID` / `CLOUDFLARE_SECRET_ACCESS_KEY` - R2 access credentials
 - `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
-- `CLEANUP_TOKEN` - Authentication token for cleanup API endpoint
 - `PAT` - Personal Access Token with workflow permissions (for version-check to trigger build workflow)
 - `GPG_ENABLED` (vars) - Whether to enable GPG signing
 

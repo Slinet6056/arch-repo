@@ -16,7 +16,4 @@
       "bucket_name": "arch-repo",
     },
   ],
-  "vars": {
-    "CLEANUP_TOKEN": "",
-  },
 }

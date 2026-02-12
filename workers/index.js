@@ -41,11 +41,6 @@ export default {
       return await getPackageInfo(env.R2_BUCKET, pkgName, corsHeaders);
     }
 
-    // API: Cleanup old versions (authenticated endpoint)
-    if (path === "/api/cleanup" && request.method === "POST") {
-      return await cleanupOldVersions(request, env, corsHeaders);
-    }
-
     // Download package files (*.pkg.tar.zst, *.sig, *.db.tar.gz, etc.)
     if (
       path.match(/\.(pkg\.tar\.zst|sig|db\.tar\.gz|db|files\.tar\.gz|files)$/)
@@ -283,110 +278,5 @@ async function getPackageInfo(bucket, pkgName, corsHeaders) {
         "Content-Type": "application/json",
       },
     });
-  }
-}
-
-/**
- * Cleanup old package versions, keeping only the latest N versions
- * Requires authentication via Authorization header
- */
-async function cleanupOldVersions(request, env, corsHeaders) {
-  try {
-    // Verify authentication
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader || authHeader !== `Bearer ${env.CLEANUP_TOKEN}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      });
-    }
-
-    // Get keep_versions from request body, default to 2
-    const body = await request.json().catch(() => ({}));
-    const keepVersions = body.keep_versions || 2;
-
-    // List all packages from R2
-    const listed = await env.R2_BUCKET.list();
-    const packageFiles = listed.objects.filter((obj) =>
-      obj.key.endsWith(".pkg.tar.zst"),
-    );
-
-    // Group packages by name
-    const packageGroups = {};
-    for (const file of packageFiles) {
-      const filename = file.key.split("/").pop();
-      const match = filename.match(
-        /^(.+)-([^-]+)-([^-]+)-([^.]+)\.pkg\.tar\.zst$/,
-      );
-
-      if (match) {
-        const pkgName = match[1];
-        if (!packageGroups[pkgName]) {
-          packageGroups[pkgName] = [];
-        }
-        packageGroups[pkgName].push({
-          key: file.key,
-          version: match[2],
-          release: match[3],
-          uploaded: file.uploaded,
-        });
-      }
-    }
-
-    // Delete old versions
-    const deletedFiles = [];
-    for (const versions of Object.values(packageGroups)) {
-      // Sort by upload time, newest first
-      versions.sort((a, b) => new Date(b.uploaded) - new Date(a.uploaded));
-
-      // Keep only the latest N versions, delete the rest
-      const toDelete = versions.slice(keepVersions);
-
-      for (const pkg of toDelete) {
-        // Delete package file
-        await env.R2_BUCKET.delete(pkg.key);
-        deletedFiles.push(pkg.key);
-
-        // Delete signature file if exists
-        const sigKey = `${pkg.key}.sig`;
-        const sigExists = await env.R2_BUCKET.head(sigKey);
-        if (sigExists) {
-          await env.R2_BUCKET.delete(sigKey);
-          deletedFiles.push(sigKey);
-        }
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        deleted: deletedFiles.length,
-        files: deletedFiles,
-        message: `Cleaned up ${deletedFiles.length} old files, keeping ${keepVersions} versions per package`,
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-  } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: error.message,
-        stack: error.stack,
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
-    );
   }
 }
