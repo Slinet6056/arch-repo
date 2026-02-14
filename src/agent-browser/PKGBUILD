@@ -1,40 +1,31 @@
 pkgname=agent-browser
 pkgver=0.10.0
 pkgrel=1
+_node_ver=22.14.0
 pkgdesc="Headless browser automation CLI for AI agents"
 arch=('x86_64')
 url="https://github.com/vercel-labs/agent-browser"
 license=('Apache-2.0')
 depends=('nodejs')
 install=agent-browser.install
-makedepends=('npm' 'pnpm' 'rust')
-source=("https://github.com/vercel-labs/agent-browser/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('054d7e3710d8c7e7f2fa10e8338678474005f493e93b996e7477390bf4c9feeb')
-
-build() {
-  cd "${pkgname}-${pkgver}"
-
-  export npm_config_ignore_scripts=true
-  export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-
-  pnpm install --frozen-lockfile --ignore-scripts
-  pnpm run build
-
-  node scripts/sync-version.js
-  cargo build --release --manifest-path cli/Cargo.toml
-  node scripts/copy-native.js
-
-  pnpm pack
-}
+source=(
+  "${pkgname}-${pkgver}.tgz::https://registry.npmjs.org/${pkgname}/-/${pkgname}-${pkgver}.tgz"
+  "node-v${_node_ver}-linux-x64.tar.xz::https://nodejs.org/dist/v${_node_ver}/node-v${_node_ver}-linux-x64.tar.xz"
+)
+sha256sums=(
+  'f454d01dcbb55dd48607ffdc2d004e9be2e95cfa378c9c7a1d5d6f5284006642'
+  '69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec'
+)
 
 package() {
-  cd "${pkgname}-${pkgver}"
+  local _node_bin="${srcdir}/node-v${_node_ver}-linux-x64/bin"
 
-  export npm_config_ignore_scripts=true
+  # Use upstream Node binary so packaging does not depend on host glibc/node ABI.
+  export PATH="${_node_bin}:${PATH}"
   export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
-  npm install -g --prefix "${pkgdir}/usr" "${pkgname}-${pkgver}.tgz"
-  install -Dm644 LICENSE -t "${pkgdir}/usr/share/licenses/${pkgname}"
+  npm install -g --prefix "${pkgdir}/usr" "${srcdir}/${pkgname}-${pkgver}.tgz"
+  install -Dm644 "${pkgdir}/usr/lib/node_modules/${pkgname}/LICENSE" -t "${pkgdir}/usr/share/licenses/${pkgname}"
 
   local _arch_suffix
   case "${CARCH}" in

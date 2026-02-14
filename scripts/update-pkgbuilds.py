@@ -108,6 +108,51 @@ def fetch_wrangler_esbuild_version(wrangler_version: str) -> str | None:
     return extract_wrangler_esbuild_version(lockfile_content)
 
 
+def fetch_npm_version_metadata(
+    package_name: str, version: str
+) -> dict[str, object] | None:
+    url = f"https://registry.npmjs.org/{package_name}/{version}"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8", "replace"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        print(
+            f"Warning: Failed to fetch npm metadata for {package_name}@{version}: {e}"
+        )
+        return None
+
+
+def normalize_node_version(version: str) -> str | None:
+    normalized = version.strip().lstrip("v")
+    if re.fullmatch(r"\d+\.\d+\.\d+", normalized):
+        return normalized
+    return None
+
+
+def fetch_agent_browser_node_version(agent_browser_version: str) -> str | None:
+    metadata = fetch_npm_version_metadata("agent-browser", agent_browser_version)
+    if not metadata:
+        return None
+
+    node_version = metadata.get("_nodeVersion")
+    if not isinstance(node_version, str):
+        print(
+            "Warning: npm metadata missing _nodeVersion for "
+            f"agent-browser@{agent_browser_version}"
+        )
+        return None
+
+    normalized = normalize_node_version(node_version)
+    if not normalized:
+        print(
+            "Warning: Invalid _nodeVersion in npm metadata for "
+            f"agent-browser@{agent_browser_version}: {node_version}"
+        )
+        return None
+
+    return normalized
+
+
 def update_pkgbuild(pkgbuild_path: Path, new_version: str) -> tuple[bool, str]:
     """
     Update PKGBUILD with new version.
@@ -155,6 +200,23 @@ def update_pkgbuild(pkgbuild_path: Path, new_version: str) -> tuple[bool, str]:
         )
         if replacements == 0:
             print(f"Warning: Cannot find _esbuild_ver in {pkgbuild_path}")
+            return False, current_version
+
+    if pkgbuild_path.parent.name == "agent-browser":
+        node_version = fetch_agent_browser_node_version(new_version)
+        if not node_version:
+            print("Warning: Cannot detect agent-browser node version, skip this package")
+            return False, current_version
+
+        content, replacements = re.subn(
+            r"^_node_ver=.+$",
+            f"_node_ver={node_version}",
+            content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if replacements == 0:
+            print(f"Warning: Cannot find _node_ver in {pkgbuild_path}")
             return False, current_version
 
     # Write back
