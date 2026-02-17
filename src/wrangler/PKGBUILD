@@ -16,6 +16,7 @@ depends=(
 makedepends=(
   'go'
   'npm'
+  'python'
   'pnpm'
   'turbo'
   'typescript'
@@ -39,16 +40,22 @@ prepare() {
 
   # @hey-api/openapi-ts 0.91.1 misses plugin bundle files in npm package.
   # Patch local-explorer-ui scripts with a minimal dist stub for packaging.
-  node <<'NODE'
-const fs = require('node:fs');
-const path = 'packages/local-explorer-ui/package.json';
-const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+  python <<'PY'
+import json
+from pathlib import Path
 
-pkg.scripts.postinstall = 'true';
-pkg.scripts.build = 'node -e "const fs=require(\'node:fs\'); fs.mkdirSync(\'dist\',{recursive:true}); fs.writeFileSync(\'dist/index.html\',\'<!doctype html><html><body></body></html>\\n\');"';
+path = Path('packages/local-explorer-ui/package.json')
+pkg = json.loads(path.read_text(encoding='utf-8'))
 
-fs.writeFileSync(path, `${JSON.stringify(pkg, null, '\t')}\n`);
-NODE
+pkg['scripts']['postinstall'] = 'true'
+pkg['scripts']['build'] = (
+    "node -e \"const fs=require('node:fs'); "
+    "fs.mkdirSync('dist',{recursive:true}); "
+    "fs.writeFileSync('dist/index.html','<!doctype html><html><body></body></html>\\n');\""
+)
+
+path.write_text(json.dumps(pkg, indent='\t') + '\n', encoding='utf-8')
+PY
 
 }
 
