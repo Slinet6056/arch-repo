@@ -6,26 +6,39 @@ set -e
 REPO_NAME="${1:-slinet}"
 
 if [ ! -d "/repo" ]; then
-    echo "Error: /repo directory not found"
-    exit 1
+  echo "Error: /repo directory not found"
+  exit 1
 fi
 
 cd /repo
 
 echo "Updating repository database: $REPO_NAME"
 
-# Add each package to the repository database
-for pkg in *.pkg.tar.zst; do
-    if [ -f "$pkg" ]; then
-        if [ "$GPG_ENABLED" = "true" ] && [ -f "$pkg.sig" ]; then
-            echo "Adding signed package: $pkg"
-            repo-add -s --verify -v "${REPO_NAME}.db.tar.gz" "$pkg"
-        else
-            echo "Adding package: $pkg"
-            repo-add -v "${REPO_NAME}.db.tar.gz" "$pkg"
-        fi
+shopt -s nullglob
+packages=(*.pkg.tar.zst)
+shopt -u nullglob
+
+if [ "${#packages[@]}" -eq 0 ]; then
+  echo "No packages found in /repo; nothing to update"
+  exit 0
+fi
+
+if [ "$GPG_ENABLED" = "true" ]; then
+  echo "Adding ${#packages[@]} package(s) and signing repository database"
+  repo-add -s -v "${REPO_NAME}.db.tar.gz" "${packages[@]}"
+
+  for db_file in "${REPO_NAME}.db.tar.gz" "${REPO_NAME}.files.tar.gz"; do
+    sig_file="${db_file}.sig"
+    if [ ! -s "$sig_file" ]; then
+      echo "Error: signature file '$sig_file' was not generated or is empty"
+      exit 1
     fi
-done
+    gpg --batch --verify "$sig_file" "$db_file"
+  done
+else
+  echo "Adding ${#packages[@]} package(s) without database signing"
+  repo-add -v "${REPO_NAME}.db.tar.gz" "${packages[@]}"
+fi
 
 # Clean up passphrase file
 rm -f .gpg-passphrase
