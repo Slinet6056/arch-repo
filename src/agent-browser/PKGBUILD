@@ -1,5 +1,5 @@
 pkgname=agent-browser
-pkgver=0.15.1
+pkgver=0.15.2
 pkgrel=1
 _node_ver=22.22.0
 pkgdesc="Headless browser automation CLI for AI agents"
@@ -12,7 +12,7 @@ source=(
   "${pkgname}-${pkgver}.tgz::https://registry.npmjs.org/${pkgname}/-/${pkgname}-${pkgver}.tgz"
   "node-v${_node_ver}-linux-x64.tar.xz::https://nodejs.org/dist/v${_node_ver}/node-v${_node_ver}-linux-x64.tar.xz"
 )
-sha256sums=('0d8ebda067ed8cdc226885d6541bc8f6607d113da0d0753844f34b55e1a6b0fa'
+sha256sums=('4be3e696720f13158020934760205b69c77f755af172098f9ca3172d9214c96d'
             '9aa8e9d2298ab68c600bd6fb86a6c13bce11a4eca1ba9b39d79fa021755d7c37')
 
 package() {
