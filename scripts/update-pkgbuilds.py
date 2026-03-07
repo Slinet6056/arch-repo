@@ -53,7 +53,8 @@ def find_pkgbuild(pkg_name: str) -> Path | None:
     """Find PKGBUILD file for the given package name."""
     for pkgbuild_path in Path("src").rglob("PKGBUILD"):
         content = pkgbuild_path.read_text()
-        if re.search(rf"^pkgname={pkg_name}$", content, re.MULTILINE):
+        pkgname_match = re.search(r"^pkgname=(.+)$", content, re.MULTILINE)
+        if pkgname_match and pkgname_match.group(1).strip("'\"") == pkg_name:
             return pkgbuild_path
     return None
 
