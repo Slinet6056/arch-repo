@@ -1,7 +1,7 @@
 pkgname=agent-browser
-pkgver=0.20.6
+pkgver=0.20.7
 pkgrel=1
-_node_ver=22.22.0
+_node_ver=22.22.1
 pkgdesc="Headless browser automation CLI for AI agents"
 arch=('x86_64')
 url="https://github.com/vercel-labs/agent-browser"
@@ -12,8 +12,8 @@ source=(
   "${pkgname}-${pkgver}.tgz::https://registry.npmjs.org/${pkgname}/-/${pkgname}-${pkgver}.tgz"
   "node-v${_node_ver}-linux-x64.tar.xz::https://nodejs.org/dist/v${_node_ver}/node-v${_node_ver}-linux-x64.tar.xz"
 )
-sha256sums=('a894f7f2174bc07fa162024c3c78d4c96653bce34c12192985d9232024bf2f22'
-            '9aa8e9d2298ab68c600bd6fb86a6c13bce11a4eca1ba9b39d79fa021755d7c37')
+sha256sums=('442d2cc8963fae931dae8aaf0b4739ccd84d7d48596e33f5be0f372ed791f428'
+            '9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa')
 
 package() {
   local _node_bin="${srcdir}/node-v${_node_ver}-linux-x64/bin"
