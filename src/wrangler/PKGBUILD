@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.118.0
-pkgrel=1
+pkgrel=2
 _esbuild_ver='0.28.1'
 _node_ver='22.14.0'
 pkgdesc="The CLI for Cloudflare Workers"
@@ -74,7 +74,8 @@ build() {
   # that are not required to build/publish wrangler itself.
   export npm_config_ignore_scripts=true
 
-  pnpm install -C packages/wrangler --frozen-lockfile --ignore-scripts
+  # Install all workspace dependencies for turbo build
+  pnpm install --frozen-lockfile --ignore-scripts
   # Build wrangler and required workspace dependencies.
   turbo build --filter=wrangler...
   pnpm pack -C packages/wrangler
