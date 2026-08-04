@@ -1,6 +1,6 @@
 pkgname=wrangler
 pkgver=4.118.0
-pkgrel=2
+pkgrel=3
 _esbuild_ver='0.28.1'
 _node_ver='22.14.0'
 pkgdesc="The CLI for Cloudflare Workers"
@@ -76,6 +76,12 @@ build() {
 
   # Install all workspace dependencies for turbo build
   pnpm install --frozen-lockfile --ignore-scripts
+
+  # Fix template resolution for remote-bindings build
+  # The embed-workers plugin uses import.meta.dirname which resolves incorrectly
+  # when the script is compiled and executed from node_modules/.unrun/
+  ln -sf remote-bindings/templates packages/templates
+
   # Build wrangler and required workspace dependencies.
   turbo build --filter=wrangler...
   pnpm pack -C packages/wrangler
