@@ -1,5 +1,5 @@
 pkgname=wrangler
-pkgver=4.120.1
+pkgver=4.121.0
 pkgrel=1
 _esbuild_ver='0.28.1'
 _node_ver='22.14.0'
@@ -28,10 +28,10 @@ options=(!lto)
 source=(https://github.com/cloudflare/workers-sdk/archive/refs/tags/wrangler@${pkgver}.tar.gz
   "esbuild-${_esbuild_ver}.tar.gz::https://github.com/evanw/esbuild/archive/v${_esbuild_ver}.tar.gz"
   "node-v${_node_ver}-linux-x64.tar.xz::https://nodejs.org/dist/v${_node_ver}/node-v${_node_ver}-linux-x64.tar.xz")
-sha256sums=('fbc29ba53aed425c2147b58a691538b11a4a26a9acc20fc9c068a904c73642b8'
+sha256sums=('4831cbdc3c636ae78332774b1f71e277bd23ca3c07881681c78e9e4e6de6bf4d'
             '65c756fa87d43178ac4a5242454c2bd0fde325f8ecf77997f8fa4b88f94d5cd2'
             '69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec')
-b2sums=('f9dae25b1a35385818eab016185289200c45e81dbf208dc3e2a0e9f67fbfc44d6d4b9187ac3dec39fcc680fcdd6dac1fa65bea9242fa424905d4369c9f665768'
+b2sums=('a01157226a2641d1c43506139d4c9ab75f27bd8dac83f89d2b4dc53af111b4bef69fc8c6755c63ab79646c5c14846014460fbfd730e7c5f89408facde0942edc'
         '0bacb2230b65f74499b9173943ec637a0f86617201ef53ca7640bded1be1885ab0cc7f12ce29c1a481c9ca990a35c17263bd6ecce72e3229b28a3a9d49885478'
         'c51c1343fd6cbc3a4c0f4291543c1573e036d72d413531d79d29be53f526f9ceefc0c2e290211fb05cbea3a5e2b7a246c7cce65c383c69f55ea7dbd5b49b93fa')
 
