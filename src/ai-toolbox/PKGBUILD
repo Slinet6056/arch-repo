@@ -1,5 +1,5 @@
 pkgname=ai-toolbox
-pkgver=1.1.1
+pkgver=1.1.2
 pkgrel=1
 pkgdesc="AI Toolbox (binary AppImage release)"
 arch=('x86_64')
@@ -14,7 +14,7 @@ source=(
   "${_appimage}::https://github.com/coulsontl/ai-toolbox/releases/download/v${pkgver}/${_appimage}"
 )
 noextract=("${_appimage}")
-sha256sums=('6a8932e287465f13c992e6ccd34732892d9f9e9f49ba8dec41789a1ea7602242')
+sha256sums=('1ab6be9fee9264f1fd7b4e27154f09b4b79c3dd78181abef92d87a821fee4bc5')
 
 prepare() {
   rm -rf squashfs-root
