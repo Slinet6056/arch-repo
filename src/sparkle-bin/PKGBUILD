@@ -1,5 +1,5 @@
 pkgname="sparkle-bin"
-pkgver=1.26.7
+pkgver=1.26.8
 pkgrel=1
 pkgdesc="Another Mihomo GUI"
 arch=("x86_64" "aarch64")
@@ -13,8 +13,8 @@ provides=("sparkle=${pkgver}")
 conflicts=('sparkle' 'sparkle-git' 'sparkle-electron-git')
 license=("GPL-3.0-only")
 source=("https://github.com/xishang0128/sparkle/releases/download/${pkgver}/sparkle-linux-${pkgver}-amd64.deb")
-sha256sums=('fc961e9376529ae0c07ff78b927538721eeab2dcaaf23c5c40a4cce737bb3349')
-sha256sums_aarch64=('04b8c1302a37db23f59782331512acfe8a846bec3301513a4a1ccd5136725bdf')
+sha256sums=('bea6e965d772c13453c9daa8c3925b11094c858b2268df5de306616a52320740')
+sha256sums_aarch64=('77e772f9de400692494b5bcf0fe17f4673b9f2c869752e9df3ba2634cdb6bbd3')
 source_aarch64=("https://github.com/xishang0128/sparkle/releases/download/${pkgver}/sparkle-linux-${pkgver}-arm64.deb")
 
 prepare() {
