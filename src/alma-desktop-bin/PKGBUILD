@@ -14,7 +14,7 @@ source=("${_github_url}/releases/download/v${pkgver}/alma-${pkgver}-linux-amd64.
 sha256sums=('423bf7f2fb44d60f831ff5eec272353589328474fab49fd14cd0d3fd402788d5')
 
 prepare() {
-  ar p alma-${pkgver}-linux-amd64.deb data.tar.xz | tar --zstd -x
+  ar p alma-${pkgver}-linux-amd64.deb "$(ar t alma-${pkgver}-linux-amd64.deb | grep -m1 '^data\.tar' | tr -d /)" | tar -x
 }
 
 package() {
