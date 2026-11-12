@@ -156,7 +156,7 @@ jobs:
             -e REPO_NAME="${{ env.REPO_NAME }}" \
             archlinux:latest \
             bash -c "
-              pacman -Sy --noconfirm pacman-contrib gnupg
+              pacman -Syu --noconfirm --needed pacman-contrib gnupg
 
               # Setup GPG for signing
               source /scripts/setup-gpg.sh
