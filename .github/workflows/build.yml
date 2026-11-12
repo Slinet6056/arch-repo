@@ -70,7 +70,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Build package with archpkg-build
-        uses: Slinet6056/archpkg-build@0c0e4d6ae7aef56cd18286ea50516a1adf87ab60 # full system upgrade fix
+        uses: Slinet6056/archpkg-build@v1
         with:
           package_name: ${{ matrix.package }}
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
